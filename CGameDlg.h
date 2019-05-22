@@ -22,7 +22,7 @@ protected:
 	void UpdateWindow();
 	void UpdateMap();
 	void DrawTipFrame(int nRow, int nCol);
-	void DrawTipLine(Vertex avPath[2]);				// 绘制提示线
+	void DrawTipLine(Vertex avPath[4], int nVexNum);				// 绘制提示线
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
 	CDC  m_dcMem;					// 内存DC
@@ -34,14 +34,16 @@ protected:
 	CSize m_ElemSize;				// 图片尺寸
 	CGameControl m_gameControl;		// 游戏控制类
 	bool m_bFirstPoint;				// 是否是第一个选中的图片
+	bool m_bPlaying;				// 游戏状态标识，标识游戏是否正在进行
 	DECLARE_MESSAGE_MAP()
 public:
-	static const int m_GameW  = 16;	// 游戏宽度
-	static const int m_GameH  = 10;	// 游戏高度
-	static const int m_PicCnt = 20;	// 图片数目
 	virtual BOOL OnInitDialog();
 	afx_msg void OnPaint();
 	afx_msg void OnClickedBtnBasicStart();
 	afx_msg void OnBnClickedBtnBasicTip();
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+private:
+	static const int m_GameW  = MAX_COL;		// 游戏宽度
+	static const int m_GameH  = MAX_ROW;		// 游戏高度
+	static const int m_PicCnt = MAX_PICNUM;		// 图片数目
 };

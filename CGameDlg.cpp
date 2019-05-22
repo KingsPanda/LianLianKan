@@ -28,6 +28,7 @@ CGameDlg::CGameDlg(CWnd* pParent /*=nullptr*/)
 	m_GameRec.bottom = m_GameTop.y + m_ElemSize.cy * m_GameH;
 
 	m_bFirstPoint = true;
+	m_bPlaying = false;
 }
 
 CGameDlg::~CGameDlg()
@@ -150,6 +151,7 @@ void CGameDlg::DrawTipFrame(int nRow, int nCol)
 
 void CGameDlg::OnClickedBtnBasicStart()
 {
+	m_bPlaying = true;
 	// 设置暂停，重拍，提示按钮可用
 	this->GetDlgItem(IDC_BTN_BASIC_PAUSE)->EnableWindow(true);
 	this->GetDlgItem(IDC_BTN_BASIC_REARRANGE)->EnableWindow(true);
@@ -172,6 +174,7 @@ void CGameDlg::OnBnClickedBtnBasicTip()
 
 void CGameDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
+	if (!m_bPlaying) return CDialogEx::OnLButtonUp(nFlags, point);
 	// TODO: Add your message handler code here and/or call default
 	if (point.x < m_GameTop.x || point.y < m_GameTop.y) {
 		return CDialogEx::OnLButtonUp(nFlags, point);
@@ -179,7 +182,8 @@ void CGameDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	// 获取鼠标点击图片所在的行列 
 	int nRow = (point.y - m_GameTop.y) / m_ElemSize.cy;
 	int nCol = (point.x - m_GameTop.x) / m_ElemSize.cx;
-	if (nRow >= m_GameH || nCol >= m_GameW) {
+	// 界外或空白区域无效
+	if (nRow >= m_GameH || nCol >= m_GameW || m_gameControl.GetElement(nRow, nCol) == BLANK) {
 		return CDialogEx::OnLButtonUp(nFlags, point);
 	}
 	if (m_bFirstPoint) {	// 第一次选中
@@ -189,21 +193,29 @@ void CGameDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	else {
 		DrawTipFrame(nRow, nCol);
 		m_gameControl.SetSecondPoint(nRow, nCol);
-		Vertex avPath[2];
+		Vertex avPath[4];
+		int nVexNum;
 		// 判断是否为同一张图片
-		if (m_gameControl.Link(avPath)) {
-			DrawTipLine(avPath);
+		bool bSuc = m_gameControl.Link(avPath, nVexNum);
+		if (bSuc) {
+			DrawTipLine(avPath, nVexNum);
 		}
 		UpdateMap();
 
 		Sleep(200);
 		InvalidateRect(m_GameRec, FALSE);
+		// 判断胜负
+		if (bSuc && m_gameControl.IsWin()) {
+			m_bPlaying = false;
+			MessageBox(NULL, TEXT("恭喜您获胜啦！"), MB_OK);
+			this->GetDlgItem(IDC_BTN_BASIC_START)->EnableWindow(true);
+		}
 	}
 	// 每一次选中都给m_bFirstPoint赋反值
 	m_bFirstPoint = !m_bFirstPoint;
 }
 
-void CGameDlg::DrawTipLine(Vertex avPath[2])
+void CGameDlg::DrawTipLine(Vertex avPath[4], int nVexNum)
 {
 	// 获取DC
 	CClientDC dc(this);
@@ -214,9 +226,9 @@ void CGameDlg::DrawTipLine(Vertex avPath[2])
 	// 绘制连接线
 	dc.MoveTo(m_GameTop.x + avPath[0].col * m_ElemSize.cx + m_ElemSize.cx / 2,
 			  m_GameTop.y + avPath[0].row * m_ElemSize.cy + m_ElemSize.cy / 2);
-
-	dc.LineTo(m_GameTop.x + avPath[1].col * m_ElemSize.cx + m_ElemSize.cx / 2,
-			  m_GameTop.y + avPath[1].row * m_ElemSize.cy + m_ElemSize.cy / 2);
-
+	for (int i = 1; i < nVexNum; i++) {
+		dc.LineTo(m_GameTop.x + avPath[i].col * m_ElemSize.cx + m_ElemSize.cx / 2,
+			m_GameTop.y + avPath[i].row * m_ElemSize.cy + m_ElemSize.cy / 2);
+	}
 	dc.SelectObject(pOldPen);
 }
